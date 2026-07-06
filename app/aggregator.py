@@ -159,7 +159,7 @@ import os
 import json
 
 CACHE_FILE = "cache_briefing.json"
-CACHE_TTL_HOURS = 0.3  # How long to reuse the AI output before regenerating
+CACHE_TTL_HOURS = 0.5  # How long to reuse the AI output before regenerating
 
 def get_briefing() -> tuple[list, str, bool]:
     """Generates the briefing collection with a resilient local filesystem cache layer."""

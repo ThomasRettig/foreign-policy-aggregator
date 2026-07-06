@@ -10,7 +10,7 @@ A terminal-based interactive tool that automatically aggregates long-form resear
 * **Adversarial Interrogation Deck (New):** Spin up a live, multi-turn, persistent chat session with an elite AI Intelligence Critic to challenge and stress-test the underlying assumptions, omitted evidence, and institutional slants of any single article.
 * **Guaranteed Schema Fidelity:** Powered by native **Pydantic Structured Outputs** via the Google GenAI SDK. Eliminates wire-level JSON parsing and delimiter failures.
 * **Uncapped Token Buffering:** Configured with a max output capacity of **8,192 tokens**, providing deep analytical essays without premature truncation or cut-offs.
-* **Resilient Intelligent Caching:** A highly optimized local filesystem cache layer prevents duplicate API requests. Identical workloads load instantly ($<0.01$ seconds) while remaining valid for a rolling 4-hour Time-To-Live (TTL) window.
+* **Resilient Intelligent Caching:** A highly optimized local filesystem cache layer prevents duplicate API requests. Identical workloads load instantly ($<0.01$ seconds) while remaining valid for a rolling 30-minute Time-To-Live (TTL) window.
 
 ---
 
