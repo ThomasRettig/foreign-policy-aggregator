@@ -8,6 +8,7 @@ from rich.text import Text
 from rich.markdown import Markdown
 
 from app.aggregator import get_briefing
+from app.ai_service import start_adversarial_chat_session
 
 console = Console()
 
@@ -30,10 +31,8 @@ def show_header():
     console.print()
 
 def show_synthesis_report(report_text: str):
-    """Render the cross-cutting Markdown synthesis briefing report."""
     show_header()
     md = Markdown(report_text)
-    
     panel = Panel(
         md,
         title="✨ [bold gold1]CROSS-CUTTING AI SYNTHESIS BRIEFING[/bold gold1]",
@@ -43,9 +42,74 @@ def show_synthesis_report(report_text: str):
     )
     console.print(panel)
     console.print()
-    
     import questionary
     questionary.press_any_key_to_continue("👉 Press any key to return to the Main Menu...").ask()
+
+def run_interrogation_loop(art):
+    """Launches the live interactive adversarial chat window inside the terminal console."""
+    import questionary
+    
+    show_header()
+    console.print(Panel(
+        f"Initializing critical link with Gemini 2.5 Flash...\nPrimes payload text from: [bold cyan]{art.title}[/bold cyan]",
+        title="[bold red]🚨 ADVERSARIAL QA MODE[/bold red]",
+        border_style="red"
+    ))
+    
+    try:
+        # Use full scraped text body if available; fallback cleanly to summary snippet
+        content_payload = art.full_text if getattr(art, 'full_text', '') else art.summary
+        chat_session = start_adversarial_chat_session(art.title, art.source, content_payload)
+    except Exception as e:
+        console.print(f"\n[bold red]Failed to boot AI Engine Session:[/bold red] {e}")
+        time.sleep(3)
+        return
+
+    # Direct system priming greeting text
+    show_header()
+    console.print(Panel(
+        f"You are now connected to the Intelligence Critic Engine for:\n'[italic]{art.title}'[/italic]\n\n"
+        "[bold gold1]Suggested opening lines of inquiry:[/bold gold1]\n"
+        " • 'What are the weakest analytical assumptions here?'\n"
+        " • 'What critical counter-arguments did the author completely omit?'\n"
+        " • 'How do these conclusions break down under an adversarial framework?'\n\n"
+        "Type [bold red]'exit'[/bold red] or [bold red]'back'[/bold red] at any prompt to return to your dashboard layout.",
+        title="[bold green]🥊 SYSTEM CHAT READY[/bold green]",
+        border_style="green"
+    ))
+
+    while True:
+        user_input = questionary.text(
+            "🤔 Challenge Analysis:",
+            style=questionary.Style([('question', 'fg:#ffd700 bold')])
+        ).ask()
+        
+        if user_input is None:
+            break
+            
+        clean_input = user_input.strip()
+        if clean_input.lower() in ['exit', 'back', 'quit']:
+            break
+            
+        if not clean_input:
+            continue
+
+        console.print()
+        with console.status("[bold red]Stress-testing author claims & compiling counter-vectors...", spinner="earth"):
+            try:
+                response = chat_session.send_message(clean_input)
+                reply_text = response.text
+            except Exception as e:
+                reply_text = f"**Pipeline Interruption Error:** Unable to stream token completions. {str(e)}"
+        
+        # Render response neatly wrapped inside a customized markdown canvas panel
+        console.print(Panel(
+            Markdown(reply_text),
+            title=f"[bold red]AI Critic Response[/bold red]",
+            border_style="red",
+            padding=(1, 2)
+        ))
+        console.print()
 
 def view_article(art):
     while True:
@@ -63,9 +127,6 @@ def view_article(art):
         content_text.append("AI Curated Deep-Dive Summary:\n", style="bold gold1")
         content_text.append(f"{art.summary}\n\n", style="white")
         
-        content_text.append("URL: ", style="bold dim")
-        content_text.append(f"{art.url}\n", style="underline blue")
-        
         panel = Panel(
             content_text,
             title=f"[bold yellow]{art.title}[/bold yellow]",
@@ -80,6 +141,7 @@ def view_article(art):
         action = questionary.select(
             "What would you like to do with this article?",
             choices=[
+                "💬 Interrogate This Analysis (Adversarial Q&A)",
                 "🌐 Open in default Web Browser",
                 "👈 Back to Articles List",
                 "🏠 Back to Main Menu"
@@ -93,6 +155,8 @@ def view_article(art):
         
         if action is None or "Back to Articles List" in action:
             return 'go_list'
+        elif "Interrogate This Analysis" in action:
+            run_interrogation_loop(art)
         elif "Open in default Web Browser" in action:
             webbrowser.open(art.url)
             time.sleep(1)
@@ -159,7 +223,6 @@ def main():
             else:
                 console.print("[bold red]⚠ Processing Failure. Check terminal parameters or refresh.[/bold red]\n")
         
-        # Setup Main Menu choices dynamically
         choices = []
         if articles:
             choices.append("✨ View AI Cross-Cutting Synthesis Report")
