@@ -2,22 +2,32 @@ import os
 import json
 from google import genai
 from google.genai import types
+from pydantic import BaseModel, Field
+from typing import List
 
-def curate_briefing_with_ai(candidate_articles: list) -> list:
+# Define the structured output schema using Pydantic
+class SelectedArticleSchema(BaseModel):
+    id: int = Field(description="The matching original id integer from the candidate list")
+    reading_time: int = Field(description="Estimated reading time in minutes")
+    summary: str = Field(description="An expert, high-fidelity 2-sentence summary of this article")
+
+class IntelligenceBriefingSchema(BaseModel):
+    synthesis_report: str = Field(description="The complete cross-cutting analysis report formatted in standard GitHub Markdown")
+    selected_articles: List[SelectedArticleSchema] = Field(description="Exactly the top 3 chosen articles matching the strict constraints")
+
+def generate_synthesis_and_briefing(candidate_articles: list) -> tuple[list, str]:
     """
-    Sends collected RSS candidate snippets to Gemini 1.5 Flash in ONE batch.
-    Asks Gemini to choose the top 3 items enforcing source diversity.
+    Sends the full body text of candidate articles to Gemini 2.5 Flash.
+    Returns a tuple of (curated_articles_list, markdown_synthesis_report).
     """
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
-        # Silently return empty list if key isn't configured, triggering the local fallback
-        return []
-        
+        return [], "# AI Engine Offline\nPlease configure your GEMINI_API_KEY environment variable to enable full-text intelligence synthesis."
+
     try:
-        # Initialize the official Google GenAI Client
         client = genai.Client(api_key=api_key)
         
-        # Format candidate items cleanly to preserve token bandwidth
+        # Package full content vectors safely for the payload
         pool_data = []
         for idx, art in enumerate(candidate_articles):
             pool_data.append({
@@ -25,54 +35,51 @@ def curate_briefing_with_ai(candidate_articles: list) -> list:
                 "title": art.title,
                 "source": art.source,
                 "url": art.url,
-                "snippet": art.summary  # Contains the initial RSS description text
+                "full_content": art.full_text if art.full_text else art.summary
             })
 
         prompt = f"""
-        You are an expert international relations analyst and editor-in-chief of a premium intelligence briefing.
-        Review this pool of candidate articles compiled from global RSS feeds:
+        You are a Director of National Intelligence compiling a high-level systemic briefing for Singaporean policymakers.
+        Analyze the full-text content of these primary source items collected from open-source RSS channels:
         {json.dumps(pool_data, indent=2)}
-        
-        Tasks:
-        1. Select exactly the top 3 most impactful or insight-rich articles. Shorter high-quality analytical pieces are acceptable.
-        2. CRITICAL: Enforce source diversity. Do not select more than 2 articles from the same source.
-        3. For each selected article, draft an expert, professional 2-sentence summary. Sentence 1 must state the core thesis or observation. Sentence 2 must highlight its strategic implication or evidence. 
-        4. Estimate a reasonable reading time in minutes based on expected depth.
-        
-        Return your response strictly as a JSON list matching this structure:
-        [
-          {{
-            "id": <matching_original_id>,
-            "reading_time": <int_estimated_minutes>,
-            "summary": "<your_expert_2_sentence_summary>"
-          }}
-        ]
+
+        Execute two distinct tasks:
+        1. Compile an overarching "Cross-Cutting Intelligence Report" formatted in standard GitHub Markdown for `synthesis_report`.
+           - Do NOT simply summarize articles one by one. Group insights by grand-strategic themes, macroeconomic vectors, or regional security architectures, for example.
+           - Actively map intersections: highlight analytical convergence or explicit forecasting disagreements between different publications.
+           - Ensure clear Markdown layout headers (e.g., ## Core Strategic Vectors, ## Analytical Tensions).
+           - Conclude with an actionable 'Key Strategic Takeaways' summary.
+           
+        2. Filter and rank exactly the top 3 most valuable articles to present as individual deep dives in `selected_articles`. Enforce source diversity (maximum 2 entries from the same brand). Draft an expert 2-sentence summary for each selection.
         """
-        
+
+        # Call Gemini with native response_schema enforcement
         response = client.models.generate_content(
             model='gemini-2.5-flash',
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
-                temperature=0.2
+                response_schema=IntelligenceBriefingSchema,
+                temperature=0.3,
+                max_output_tokens=9000
             ),
         )
-        
-        selections = json.loads(response.text)
-        
-        final_briefing = []
-        for item in selections:
-            orig_idx = item.get("id")
+
+        # The SDK automatically parses the schema safely into response.parsed
+        parsed_data: IntelligenceBriefingSchema = response.parsed
+        synthesis_markdown = parsed_data.synthesis_report
+        selected_items = parsed_data.selected_articles
+
+        final_articles = []
+        for item in selected_items:
+            orig_idx = item.id
             if orig_idx is not None and 0 <= orig_idx < len(candidate_articles):
                 art = candidate_articles[orig_idx]
-                # Inject the high-fidelity AI components into the existing data model
-                art.reading_time = item.get("reading_time", art.reading_time)
-                art.summary = item.get("summary", art.summary)
-                final_briefing.append(art)
-                
-        return final_briefing
-        
+                art.reading_time = item.reading_time if item.reading_time else art.reading_time
+                art.summary = item.summary if item.summary else art.summary
+                final_articles.append(art)
+
+        return final_articles, synthesis_markdown
+
     except Exception as e:
-        # Temporary print out the true underlying error to diagnose the issue
-        print(f"\n[DIAGNOSTIC ERROR] Gemini API Error: {e}")
-        return []
+        return [], f"# Synthesis Pipeline Fallback\nAn error occurred while compiling structured metrics via Gemini: {str(e)}"

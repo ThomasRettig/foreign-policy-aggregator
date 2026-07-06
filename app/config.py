@@ -25,6 +25,11 @@ FEEDS = {
     "project_syndicate": {
         "name": "Project Syndicate",
         "url": "https://www.project-syndicate.org/rss",
+        "default_read_time": 8,
+    },
+    "chatham_house": {
+        "name": "Chatham House",
+        "url": "https://www.chathamhouse.org/path/whatsnew.xml",
         "default_read_time": 10,
     },
 }
