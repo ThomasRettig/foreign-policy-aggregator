@@ -51,7 +51,7 @@ def generate_synthesis_and_briefing(candidate_articles: list) -> tuple[list, str
             })
 
         prompt = f"""
-        You are a Director of National Intelligence compiling a high-level systemic briefing for global policymakers.
+        You are a Director of National Intelligence compiling a high-level systemic briefing tailored specifically for Singaporean policymakers.
         Analyze the full-text content of these primary source items collected from open-source RSS channels:
         {json.dumps(pool_data, indent=2)}
 

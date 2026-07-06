@@ -1,53 +1,104 @@
-# Global Perspectives - Foreign Policy TUI Aggregator
+# Foreign Policy Aggregator
 
-`Global Perspectives` is a visually striking, keyboard-navigable Windows CLI tool built in Python 3.11+. It automatically aggregates, filters, and summarizes the top 2-3 long-form foreign policy essays and analyses published yesterday or today.
-
-## Sources
-* **Foreign Affairs** (Published by the Council on Foreign Relations)
-* **Foreign Policy Magazine**
-* **War on the Rocks**
+A terminal-based interactive tool that automatically aggregates long-form research, creates cross-cutting macroeconomic and geopolitical intelligence reports using advanced AI models, and provides an adversarial interrogation sandbox to stress-test authorial claims.
 
 ---
 
-## Prerequisites
-* **Python 3.11+** installed and added to your System PATH.
-* Active Internet Connection (to fetch feeds and scrape articles).
+## ✨ Core Operational Features
+
+* **Cross-Cutting AI Synthesis:** Moves beyond simple chronological summaries. The intelligence engine reads full-text articles and maps macro-strategic vectors, analytical tensions, and structural points of convergence or disagreement across publications.
+* **Adversarial Interrogation Deck (New):** Spin up a live, multi-turn, persistent chat session with an elite AI Intelligence Critic to challenge and stress-test the underlying assumptions, omitted evidence, and institutional slants of any single article.
+* **Guaranteed Schema Fidelity:** Powered by native **Pydantic Structured Outputs** via the Google GenAI SDK. Eliminates wire-level JSON parsing and delimiter failures.
+* **Uncapped Token Buffering:** Configured with a max output capacity of **8,192 tokens**, providing deep analytical essays without premature truncation or cut-offs.
+* **Resilient Intelligent Caching:** A highly optimized local filesystem cache layer prevents duplicate API requests. Identical workloads load instantly ($<0.01$ seconds) while remaining valid for a rolling 4-hour Time-To-Live (TTL) window.
 
 ---
 
-## Quick Start (Windows)
-Double-click the **`run.bat`** file in the root directory. 
+## 📋 Registry of Supported Data Sources
 
-This batch script will automatically:
-1. Initialize a Python virtual environment (`.venv`).
-2. Upgrade `pip` and install all required libraries (`rich`, `questionary`, `requests`, `beautifulsoup4`).
-3. Boot up the TUI menu.
+The aggregator targets high-fidelity, long-form institutional policy research, recently expanded to capture deep-dive European and trans-Atlantic insights:
 
----
-
-## Keyboard Controls
-The interface is built with `questionary` and is fully interactive:
-* **Arrow Keys ($\uparrow$ / $\downarrow$)** to move between selections.
-* **Enter** to confirm choice or drill down.
-* **Ctrl+C** to exit the application immediately at any point.
+| Source Registry | Focus Arena | Analytical Vector |
+| --- | --- | --- |
+| **Chatham House** | Global Governance & Security | Grand Strategy, Regional Architectures |
+| **Project Syndicate** | Macroeconomics & Development | Global Finance, Structural Shifts |
+| **European Council on Foreign Relations (ECFR)** | European Foreign Policy | Transatlantic Ties, Sovereignty Dynamics |
+| **RAND Corporation** | Security & Defense Policy | Military AI, Quantitative Risk Frameworks |
+| **Brookings Institution** | Domestic & Foreign Policy | Trade Vectors, Tech Supply Chain Resilience |
 
 ---
 
-## How It Works Under the Hood
+## 🛠️ Architecture & Tech Stack
 
-### 1. Date Validation
-* Feeds are parsed dynamically using standard RFC 822 parser (`email.utils.parsedate_to_datetime`).
-* Dates are converted into timezone-aware objects and matched strictly against the local reader's **yesterday** and **today**.
-* **Quiet News Day Handling**: If fewer than 2 articles are published in this 24-48h window (e.g. over weekends/holidays), the tool automatically expands the search range to the past 7 days to guarantee you always have analysis to read.
+* **Intelligence Core:** `gemini-2.5-flash` — Selected for its massive 1-million token context window, structured JSON enforcement alignment, and exceptional blended-token cost efficiency.
+* **Data Validation Canvas:** `pydantic` (v2) — Guarantees strict serialization schema validation across the API wire.
+* **Terminal User Interface:** `rich` and `questionary` — Renders highly scannable, stylized UI panels, clean markdown trees, dynamic status spinners, and interactive prompt blocks inside standard terminal layouts.
 
-### 2. "Long-Form" Heuristic Filtering
-* First, articles matching short-form categories (like *Podcast, Sitrep, Brief, Event, Newsletter*) or URL slug keywords are filtered out.
-* The script crawls the article's web page body to count words:
-  * A reading time of $\ge 7$ minutes is defined as $\ge 1,400$ words (calculated at an average reading speed of 200 words per minute).
-  * If a paywall blocks crawling (returning preview text < 500 words), but the source category is verified as an essay or analysis, the tool applies a default read time fallback (e.g. 10 minutes) and preserves the item.
+---
 
-### 3. Editorially-Grounded Summarization
-Instead of using latency-prone or cost-heavy LLM APIs, the tool creates a clean 2-sentence summary:
-* **Sentence 1**: Extracted from the RSS feed's editorially written deck/description tag (HTML cleaned).
-* **Sentence 2**: The first narrative sentence of the article body, obtained by scraping the first body paragraph that is long enough and filtering out author/copyright metadata.
-* This results in highly informative, professional 2-sentence summaries.
+## 🚀 Quick Start & Installation
+
+### 1. Environment Configuration
+
+Clone this repository to your target directory and ensure you have Python 3.11+ available. Set your API credentials in your environment layout:
+
+```bash
+# Windows PowerShell
+$env:GEMINI_API_KEY="your-api-key-here"
+
+# Linux / macOS Bash
+export GEMINI_API_KEY="your-api-key-here"
+
+```
+
+### 2. Initialization
+
+Execute the main bootstrap automated command sequence package script to assemble virtual dependencies and boot the application workspace:
+
+```bash
+run.bat
+
+```
+
+---
+
+## 🕹️ Operational Workflow Map
+
+```
+                     [ run.bat Launcher ]
+                              │
+                              ▼
+               [ Check cache_briefing.json ]
+               ╱                           ╲
+     (Cache Hit)        (Cache Miss / Manual Refresh)
+           ╱                                       ╲
+          ▼                                         ▼
+[ Load Instantly from Disk ]             [ Scrape OSINT RSS Channels ]
+          │                                         │
+          │                                         ▼
+          │                            [ Pipe Full-Text to Gemini ]
+          │                                         │
+          ▼                                         ▼
+ ───────────────────────────────────────────────────────────────
+                      MAIN DASHBOARD WINDOW
+ ───────────────────────────────────────────────────────────────
+  ├── 1. View AI Cross-Cutting Synthesis Report (Full Markdown)
+  ├── 2. Read Curated Deep Dives (Selected Source Articles)
+  │       └── 💬 Interrogate This Analysis (Adversarial Q&A Deck)
+  ├── 3. Refresh Feed (Bypasses & forces cache overwrite)
+  └── 4. Exit
+
+```
+
+> **Adversarial Q&A Prompt Tip:** When entering the Interrogation Cockpit, push past simple summaries. Challenge the engine with prompts like: *"Identify three systemic dependencies or unstated geographic vulnerabilities the author downplayed in this piece."*
+
+---
+
+## 🧪 Automated Regression Validation
+
+To ensure structural parser components, date normalization matrices, local balancing algorithms, and mockup system integration contexts remain stable, run the integrated testing module:
+
+```bash
+.venv\Scripts\python -m unittest tests/test_parser.py
+
+```
