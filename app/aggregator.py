@@ -97,31 +97,41 @@ def get_top_articles(days_window: int = 1) -> list:
         for item in items:
             pub_date = parse_date(item.get("pubDate"))
             if pub_date and is_published_in_window(pub_date, days_limit=days_window):
-                title = item.get("title", "")
-                url = item.get("link", "")
-                
-                if not title or not url or any(kw in url.lower() or kw in title.lower() for kw in EXCLUDED_KEYWORDS):
-                    continue
-                if any(any(kw in c.lower() for kw in EXCLUDED_CATEGORIES) for c in item.get("categories", [])):
-                    continue
-                
-                # Fetch full-text for AI curation engine
-                body_content = scrape_full_text(url)
-                fallback_snippet = BeautifulSoup(item.get("description", ""), "html.parser").get_text().strip()
-                
-                all_articles.append(Article(
-                    title=title,
-                    source=config.get("name"),
-                    pub_date=pub_date,
-                    url=url,
-                    reading_time=config.get("default_read_time", 8),
-                    summary=fallback_snippet[:300] + "..." if len(fallback_snippet) > 300 else fallback_snippet,
-                    category_list=item.get("categories", []),
-                    full_text=body_content if body_content else fallback_snippet
-                ))
+                article = process_feed_item(item, source_key)
+                if article:
+                    all_articles.append(article)
                 
     all_articles.sort(key=lambda a: a.pub_date, reverse=True)
     return all_articles
+
+def process_feed_item(item: dict, source_key: str, scrape: bool = True) -> Article | None:
+    """Process a single feed item: check exclusions, parse fields, and return an Article or None."""
+    title = item.get("title", "")
+    url = item.get("link", "")
+    pub_date = parse_date(item.get("pubDate"))
+    
+    if not title or not url or any(kw in url.lower() or kw in title.lower() for kw in EXCLUDED_KEYWORDS):
+        return None
+    if any(any(kw in c.lower() for kw in EXCLUDED_CATEGORIES) for c in item.get("categories", [])):
+        return None
+        
+    config = FEEDS.get(source_key, {})
+    fallback_snippet = BeautifulSoup(item.get("description", ""), "html.parser").get_text().strip()
+    
+    body_content = ""
+    if scrape:
+        body_content = scrape_full_text(url)
+        
+    return Article(
+        title=title,
+        source=config.get("name", source_key),
+        pub_date=pub_date,
+        url=url,
+        reading_time=config.get("default_read_time", 8),
+        summary=fallback_snippet[:300] + "..." if len(fallback_snippet) > 300 else fallback_snippet,
+        category_list=item.get("categories", []),
+        full_text=body_content if body_content else fallback_snippet
+    )
 
 def enforce_local_diversity(articles: list, max_total: int = 3) -> list:
     if not articles:
